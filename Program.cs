@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
+
+// ReSharper disable InconsistentNaming
 
 namespace tema2CN
 {
@@ -12,20 +13,39 @@ namespace tema2CN
         private static readonly string InputPath =
             $@"{Directory.GetParent(Directory.GetCurrentDirectory()).Parent?.Parent?.FullName}\{InputFile}";
 
-        private static double[,] a, t, aInit;
-        private static double[] d, b, y, x;
+        private static double[,] a, aInit;
+        private static double[] d, b;
         private static double eps;
         private static int n;
 
         private static void Main()
-        {
-            Init();
-            //PrintArray(rezolvareSEL(a, b));
+        { 
+            ReadFromFile(out a, out aInit, out d, out b, out n, out eps, InputPath);
+            // PrintArray(rezolvareSEL(a, b));
+            // Console.Write(VerificareSolutie());
+            PrintMatrix(inversaMatricei(a, n));
         }
-        
+
+        private static double[,] inversaMatricei(double[,] a, int n)
+        {
+            var res = new double[n,n];
+            var b = new double[n];
+
+            double[] x;
+            for (var j = 0; j < n; j++)
+            {
+                for (var i = 0; i < n; i++)
+                    b[i] = 0;
+                b[j] = 1;
+                x = rezolvareSEL(a, b);
+                for (var i = 0; i < n; i++)
+                    res[j, i] = x[i];
+            }
+            return res;
+        }
         private static double[] rezolvareSEL(double[,] a, double[] b)
         {
-            a = DescompunereCholesky(a);
+            a = DescompunereCholesky(a, n);
             return SubstitutieSuperior(Transpusa(a), SubstitutieInferior(a, b));
         }
         private static double[] Diferenta(double[] a, double[] b)
@@ -49,6 +69,7 @@ namespace tema2CN
         }
         private static double VerificareSolutie()
         {
+            var x = rezolvareSEL(a, b);
             return normaEuclidiana(Diferenta(ProdusMatriceVector(aInit, x), b));
         }
 
@@ -88,7 +109,7 @@ namespace tema2CN
                 var line = "";
                 for (var j = 0; j < n; j++)
                 {
-                    line += m[i, j].ToString() + ' ';
+                    line += m[i, j].ToString("#.0000") + ' ';
                 }
 
                 Console.WriteLine(line);
@@ -124,11 +145,9 @@ namespace tema2CN
 
             return x;
         }
-        private static double[,] DescompunereCholesky(double[,] a)
+        private static double[,] DescompunereCholesky(double[,] a, int n)
         {
-            int n = (int)Math.Sqrt(a.Length);
- 
-            double[,] ret = new double[n, n];
+            var ret = new double[n, n];
             for (int r = 0; r < n; r++)
             for (int c = 0; c <= r; c++)
             {
@@ -166,15 +185,27 @@ namespace tema2CN
             return true;
         }
 
-        private static void Init()
+        private static double[,] CopieMatrice(double[,] a)
         {
-            var lines = File.ReadAllLines(InputPath);
+            var copy = new double[n,n];
+            for (var i = 0; i < n; i++)
+            {
+                for (var j = 0; j < n; j++)
+                {
+                    copy[i, j] = a[i, j];
+                }                
+            }
+            return copy;
+        }
+        
+        private static void ReadFromFile(out double[,] a, out double[,] aInit, out double[] d, out double[] b, out int n, out double eps, string path )
+        {
+            var lines = File.ReadAllLines(path);
             var tokens = lines[0].Split(' ');
             n = int.Parse(tokens[0]);
             eps = double.Parse(tokens[1]);
 
             a = new double[n, n];
-            aInit = new double[n,n];
             d = new double[n];
             b = new double[n];
 
@@ -187,6 +218,8 @@ namespace tema2CN
                 }
             }
 
+            aInit = CopieMatrice(a);
+            
             tokens = lines[n + 1].Split(' ');
             for (var i = 0; i < n; i++)
             {
@@ -198,13 +231,7 @@ namespace tema2CN
                 d[i] = a[i, i];
             }
 
-            for (var i = 0; i < n; i++)
-            {
-                for (var j = 0; j < n; j++)
-                {
-                    aInit[i, j] = a[i, j];
-                }                
-            }
+            
             if (!MatriceValida())
             {
                 Console.WriteLine(!MatriceValida() ? "Matricea nu este valida!" : "Input valid!");
